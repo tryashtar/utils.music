@@ -41,7 +41,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Lyrics.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Utility\Utility.csproj">
+      <Project>{f26f53d2-0247-43c6-bc49-27a99f00d9af}</Project>
+      <Name>Utility</Name>
+    </ProjectReference>
+    <ProjectReference Include="TaglibSharp\src\TaglibSharp\TaglibSharp.csproj">
+      <Project>{3cca3e40-03c0-4972-8546-69b1d7b75b8e}</Project>
+      <Name>TaglibSharp</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
