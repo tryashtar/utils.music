@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0-windows7.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>TryashtarUtils.Music</RootNamespace>
+    <AssemblyName>TryashtarUtils.Music</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TaglibSharp\src\TaglibSharp\TaglibSharp.csproj" />
+    <ProjectReference Include="..\Utility\TryashtarUtils.Utility.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="**/desktop.ini" />
+  </ItemGroup>
+</Project>
