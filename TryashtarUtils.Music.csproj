@@ -8,13 +8,13 @@
     <AssemblyName>TryashtarUtils.Music</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TaglibSharp\src\TaglibSharp\TaglibSharp.csproj" />
+    <ProjectReference Include="..\..\taglib-sharp\src\TaglibSharp\TaglibSharp.csproj" />
     <ProjectReference Include="..\Utility\TryashtarUtils.Utility.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
     <None Remove="**/desktop.ini" />
+    <None Remove="Properties\**" />
   </ItemGroup>
 </Project>
