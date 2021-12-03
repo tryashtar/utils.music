@@ -9,8 +9,8 @@
     <AssemblyName>TryashtarUtils.Music</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\taglib-sharp\src\TaglibSharp\TaglibSharp.csproj" />
-    <ProjectReference Include="..\Utility\TryashtarUtils.Utility.csproj" />
+    <ProjectReference Include="..\taglib-sharp\src\TaglibSharp\TaglibSharp.csproj" />
+    <ProjectReference Include="..\utils.utility\TryashtarUtils.Utility.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Properties\**" />
