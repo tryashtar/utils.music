@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using TagLib.Id3v2;
 using TryashtarUtils.Utility;
 
@@ -13,7 +12,7 @@ namespace TryashtarUtils.Music
     public class Lyrics
     {
         public readonly bool Synchronized;
-        private readonly List<LyricsEntry> Entries = new List<LyricsEntry>();
+        private readonly List<LyricsEntry> Entries = new();
         public ReadOnlyCollection<LyricsEntry> Lines => Entries.AsReadOnly();
 
         public Lyrics(SynchedText[] text)
@@ -41,23 +40,6 @@ namespace TryashtarUtils.Music
             {
                 Entries.Add(new LyricsEntry(line, TimeSpan.Zero));
             }
-        }
-
-        private static readonly Regex LrcRegex = new Regex(@"\[(?<time>.+)\](?<line>.+)");
-        private static readonly string[] TimespanFormats = new string[] { @"h\:mm\:ss\.FFF", @"mm\:ss\.FFF", @"m\:ss\.FFF", @"h\:mm\:ss", @"mm\:ss", @"m\:ss" };
-        public static Lyrics FromLrc(string[] lines)
-        {
-            var list = new List<LyricsEntry>();
-            foreach (var line in lines)
-            {
-                var match = LrcRegex.Match(line);
-                if (match.Success)
-                {
-                    if (TimeSpan.TryParseExact(match.Groups["time"].Value, TimespanFormats, null, out var time))
-                        list.Add(new LyricsEntry(match.Groups["line"].Value, time));
-                }
-            }
-            return new Lyrics(list);
         }
 
         public SynchedText[] ToSynchedText()
@@ -88,7 +70,7 @@ namespace TryashtarUtils.Music
 
         public string ToLrcEntry()
         {
-            string time_str = Time.TotalHours < 1 ? Time.ToString(@"mm\:ss\.ff") : Time.ToString(@"h\:mm\:ss\.ff");
+            string time_str = StringUtils.TimeSpan(Time);
             return $"[{time_str}]{Text}";
         }
     }
