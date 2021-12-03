@@ -13,7 +13,7 @@ namespace TryashtarUtils.Music
     public static class LyricsIO
     {
         public const string OGG_LYRICS = "SYNCED_LYRICS";
-        public static void ToFile(TagLib.File file, Lyrics? lyrics, string language)
+        public static void ToFile(TagLib.File file, Lyrics? lyrics)
         {
             file.Tag.Lyrics = lyrics?.ToSimple();
 
@@ -28,6 +28,7 @@ namespace TryashtarUtils.Music
                 }
                 if (lyrics != null)
                 {
+                    string? language = Language.Get(id3v2) ?? "XXX";
                     var new_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
                     {
                         Text = lyrics.ToSynchedText(),

@@ -14,12 +14,27 @@ namespace TryashtarUtils.Music
         private readonly List<Chapter> Entries = new();
         public ReadOnlyCollection<Chapter> Chapters => Entries.AsReadOnly();
 
+        public ChapterCollection(SynchedText[] text)
+        {
+            uint num = 1;
+            foreach (var item in text)
+            {
+                Entries.Add(new Chapter(num, item.Text, TimeSpan.FromMilliseconds(item.Time)));
+                num++;
+            }
+        }
+
         public ChapterCollection(IEnumerable<Chapter> entries)
         {
             foreach (var item in entries)
             {
                 Entries.Add(item);
             }
+        }
+
+        public SynchedText[] ToSynchedText()
+        {
+            return Entries.Select(x => new SynchedText((long)x.Time.TotalMilliseconds, x.Title)).ToArray();
         }
 
         public string ToChp()
