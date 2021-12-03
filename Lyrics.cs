@@ -49,7 +49,7 @@ namespace TryashtarUtils.Music
 
         public string ToSimple()
         {
-            return String.Join(Environment.NewLine, Entries.Select(x => x.Text));
+            return String.Join("\n", Entries.Select(x => x.Text));
         }
 
         public string[] ToLrc()
