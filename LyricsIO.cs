@@ -12,20 +12,25 @@ namespace TryashtarUtils.Music
 {
     public static class LyricsIO
     {
-        public const string OGG_LYRICS = "SYNCED_LYRICS";
-        public static void ToFile(TagLib.File file, Lyrics? lyrics)
+        public const string OGG_LYRICS = "SYNCED LYRICS";
+        public static bool ToFile(TagLib.File file, Lyrics? lyrics)
         {
-            file.Tag.Lyrics = lyrics?.ToSimple();
+            bool changed = false;
+            var simple = lyrics?.ToSimple();
+            changed |= file.Tag.Lyrics != simple;
+            file.Tag.Lyrics = simple;
 
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
             var ogg = (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph);
 
             if (id3v2 != null)
             {
-                foreach (var frame in id3v2.GetFrames<SynchronisedLyricsFrame>().ToList())
+                var existing_frames = id3v2.GetFrames<SynchronisedLyricsFrame>().ToList();
+                foreach (var frame in existing_frames)
                 {
                     id3v2.RemoveFrame(frame);
                 }
+                changed |= existing_frames.Count > 1;
                 if (lyrics != null)
                 {
                     string? language = Language.Get(id3v2) ?? "XXX";
@@ -35,15 +40,32 @@ namespace TryashtarUtils.Music
                         Format = TimestampFormat.AbsoluteMilliseconds
                     };
                     id3v2.AddFrame(new_frame);
+                    // short circuit
+                    changed = changed || existing_frames.Count == 0 || !IdenticalFrames(existing_frames[0], new_frame);
                 }
             }
             if (ogg != null)
             {
                 if (lyrics == null)
+                {
+                    changed |= ogg.GetFirstField(OGG_LYRICS) != null;
                     ogg.RemoveField(OGG_LYRICS);
+                }
                 else
-                    ogg.SetField(OGG_LYRICS, lyrics.ToLrc());
+                {
+                    var lrc = lyrics.ToLrc();
+                    var existing = ogg.GetField(OGG_LYRICS);
+                    changed |= !existing.SequenceEqual(lrc);
+                    ogg.SetField(OGG_LYRICS, lrc);
+
+                }
             }
+            return changed;
+        }
+
+        private static bool IdenticalFrames(SynchronisedLyricsFrame frame1, SynchronisedLyricsFrame frame2)
+        {
+            return frame1.Render(4) == frame2.Render(4);
         }
 
         public static Lyrics? FromFile(TagLib.File file)

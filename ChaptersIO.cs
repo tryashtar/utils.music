@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -22,19 +23,37 @@ namespace TryashtarUtils.Music
             return "CHAPTER" + num.ToString("000");
         }
 
-        public static void ToFile(TagLib.File file, ChapterCollection? chapters)
+        private class ChapterFrameComparer : IEqualityComparer<ChapterFrame>
         {
+            public static readonly ChapterFrameComparer Instance = new();
+            private ChapterFrameComparer() { }
+            public bool Equals(ChapterFrame? x, ChapterFrame? y)
+            {
+                return x.Render(4) == y.Render(4);
+            }
+
+            public int GetHashCode(ChapterFrame obj)
+            {
+                return obj.Render(4).GetHashCode();
+            }
+        }
+
+        public static bool ToFile(TagLib.File file, ChapterCollection? chapters)
+        {
+            bool changed = false;
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
             var ogg = (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph);
 
             if (id3v2 != null)
             {
-                foreach (var frame in id3v2.GetFrames<ChapterFrame>().ToList())
+                var existing_frames = id3v2.GetFrames<ChapterFrame>().ToList();
+                foreach (var frame in existing_frames)
                 {
                     id3v2.RemoveFrame(frame);
                 }
                 if (chapters != null)
                 {
+                    var new_frames = new List<ChapterFrame>();
                     foreach (var chapter in chapters.Chapters)
                     {
                         var new_frame = new ChapterFrame(ChapterTimeKey(chapter.Number), chapter.Title)
@@ -42,27 +61,44 @@ namespace TryashtarUtils.Music
                             StartMilliseconds = (uint)chapter.Time.TotalMilliseconds
                         };
                         id3v2.AddFrame(new_frame);
+                        new_frames.Add(new_frame);
                     }
+                    existing_frames.Sort((x, y) => x.Id.CompareTo(y.Id));
+                    new_frames.Sort((x, y) => x.Id.CompareTo(y.Id));
+                    changed = changed || !new_frames.SequenceEqual(existing_frames, ChapterFrameComparer.Instance);
                 }
+                else
+                    changed |= existing_frames.Count > 0;
             }
             if (ogg != null)
             {
-                for (uint i = 0; i < MAX_OGG_CHAPTERS; i++)
-                {
-                    string chapter_num = ChapterTimeKey(i);
-                    ogg.RemoveField(chapter_num);
-                    ogg.RemoveField(chapter_num + OGG_CHAPTER_NAME);
-                }
+                var writing = new Dictionary<uint, Chapter>();
                 if (chapters != null)
                 {
                     foreach (var chapter in chapters.Chapters)
                     {
-                        string chapter_num = ChapterTimeKey(chapter.Number);
-                        ogg.SetField(chapter_num, new[] { StringUtils.TimeSpan(chapter.Time) });
-                        ogg.SetField(chapter_num + OGG_CHAPTER_NAME, new[] { chapter.Title });
+                        writing[chapter.Number] = chapter;
                     }
                 }
+                for (uint i = 0; i < MAX_OGG_CHAPTERS; i++)
+                {
+                    string chapter_num = ChapterTimeKey(i);
+                    string? desired_time = null;
+                    string? desired_name = null;
+                    if (writing.TryGetValue(i, out var chapter))
+                    {
+                        desired_time = StringUtils.TimeSpan(chapter.Time);
+                        desired_name = chapter.Title;
+                    }
+                    var current_time = ogg.GetField(chapter_num);
+                    var current_name = ogg.GetField(chapter_num + OGG_CHAPTER_NAME);
+                    ogg.SetField(chapter_num, desired_time);
+                    ogg.SetField(chapter_num + OGG_CHAPTER_NAME, desired_name);
+                    changed |= current_time.Length > 1 || (current_time.Length == 0) != (desired_time == null);
+                    changed |= current_name.Length > 1 || (current_name.Length == 0) != (desired_name == null);
+                }
             }
+            return changed;
         }
 
         public static ChapterCollection? FromFile(TagLib.File file)

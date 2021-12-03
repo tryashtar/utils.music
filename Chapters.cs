@@ -37,9 +37,9 @@ namespace TryashtarUtils.Music
             return Entries.Select(x => new SynchedText((long)x.Time.TotalMilliseconds, x.Title)).ToArray();
         }
 
-        public string ToChp()
+        public string[] ToChp()
         {
-            return String.Join(Environment.NewLine, Entries.Select(x => x.ToChpEntry()));
+            return Entries.Select(x => x.ToChpEntry()).ToArray();
         }
     }
 

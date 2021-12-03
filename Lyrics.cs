@@ -52,9 +52,9 @@ namespace TryashtarUtils.Music
             return String.Join(Environment.NewLine, Entries.Select(x => x.Text));
         }
 
-        public string ToLrc()
+        public string[] ToLrc()
         {
-            return String.Join(Environment.NewLine, Entries.Select(x => x.ToLrcEntry()));
+            return Entries.Select(x => x.ToLrcEntry()).ToArray();
         }
     }
 
