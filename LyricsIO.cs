@@ -12,28 +12,6 @@ namespace TryashtarUtils.Music
 {
     public static class LyricsIO
     {
-        public static Lyrics? FromMany(IEnumerable<Func<Lyrics?>> methods)
-        {
-            foreach (var method in methods)
-            {
-                var lyrics = method();
-                if (lyrics != null)
-                    return lyrics;
-            }
-            return null;
-        }
-
-        public static Func<Lyrics?> MethodAttempt<T>(Func<T?> setup, Func<T, Lyrics?> getter)
-        {
-            return () =>
-            {
-                var item = setup();
-                if (item == null)
-                    return null;
-                return getter(item);
-            };
-        }
-
         public const string OGG_LYRICS = "SYNCED_LYRICS";
         public static void ToFile(TagLib.File file, Lyrics? lyrics, string language)
         {
@@ -69,23 +47,23 @@ namespace TryashtarUtils.Music
 
         public static Lyrics? FromFile(TagLib.File file)
         {
-            return FromMany(new[] {
-                MethodAttempt(() =>
+            return SharedIO.FromMany(new[] {
+                SharedIO.MethodAttempt(() =>
                     (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2),
                     x => FromId3v2(x)
                 ),
-                MethodAttempt(() =>
+                SharedIO.MethodAttempt(() =>
                     (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph),
                     x => FromXiph(x)
                 ),
-                MethodAttempt(() =>
+                SharedIO.MethodAttempt(() =>
                     {
                         var lrc_file = Path.ChangeExtension(file.Name, ".lrc");
                         return File.Exists(lrc_file) ? File.ReadAllLines(lrc_file) : null;
                     },
                     x => FromLrc(x)
                 ),
-                MethodAttempt(() =>
+                SharedIO.MethodAttempt(() =>
                     String.IsNullOrEmpty(file.Tag.Lyrics) ? null : file.Tag.Lyrics,
                     x => new Lyrics(x)
                 )
@@ -109,17 +87,15 @@ namespace TryashtarUtils.Music
             return null;
         }
 
-        private static readonly Regex LrcRegex = new(@"\[(?<time>.+)\](?<line>.+)");
-        private static readonly string[] TimespanFormats = new string[] { @"h\:mm\:ss\.FFF", @"mm\:ss\.FFF", @"m\:ss\.FFF", @"h\:mm\:ss", @"mm\:ss", @"m\:ss" };
         public static Lyrics? FromLrc(string[] lines)
         {
             var list = new List<LyricsEntry>();
             foreach (var line in lines)
             {
-                var match = LrcRegex.Match(line);
+                var match = SharedIO.LrcRegex.Match(line);
                 if (match.Success)
                 {
-                    if (TimeSpan.TryParseExact(match.Groups["time"].Value, TimespanFormats, null, out var time))
+                    if (TimeSpan.TryParseExact(match.Groups["time"].Value, SharedIO.TimespanFormats, null, out var time))
                         list.Add(new LyricsEntry(match.Groups["line"].Value, time));
                 }
             }
