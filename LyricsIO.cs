@@ -43,6 +43,8 @@ namespace TryashtarUtils.Music
                     // short circuit
                     changed = changed || existing_frames.Count == 0 || !IdenticalFrames(existing_frames[0], new_frame);
                 }
+                else
+                    changed |= existing_frames.Count > 0;
             }
             if (ogg != null)
             {
