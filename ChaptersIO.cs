@@ -54,11 +54,13 @@ namespace TryashtarUtils.Music
                 if (chapters != null)
                 {
                     var new_frames = new List<ChapterFrame>();
-                    foreach (var chapter in chapters.Chapters)
+                    for (int i = 0; i < chapters.Chapters.Count; i++)
                     {
+                        var chapter = chapters.Chapters[i];
                         var new_frame = new ChapterFrame(ChapterTimeKey(chapter.Number), chapter.Title)
                         {
-                            StartMilliseconds = (uint)chapter.Time.TotalMilliseconds
+                            StartMilliseconds = (uint)chapter.Time.TotalMilliseconds,
+                            EndMilliseconds = (uint)(i >= chapters.Chapters.Count - 1 ? file.Properties.Duration : chapters.Chapters[i + 1].Time).TotalMilliseconds
                         };
                         id3v2.AddFrame(new_frame);
                         new_frames.Add(new_frame);
