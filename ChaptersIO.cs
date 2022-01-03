@@ -29,6 +29,10 @@ namespace TryashtarUtils.Music
             private ChapterFrameComparer() { }
             public bool Equals(ChapterFrame? x, ChapterFrame? y)
             {
+                if (x == null)
+                    return y == null;
+                if (y == null)
+                    return x == null;
                 return x.Render(4) == y.Render(4);
             }
 
