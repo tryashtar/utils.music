@@ -22,6 +22,7 @@ namespace TryashtarUtils.Music
 
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
             var ogg = (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph);
+            var ape = (TagLib.Ape.Tag)file.GetTag(TagTypes.Ape);
 
             if (id3v2 != null)
             {
@@ -47,6 +48,11 @@ namespace TryashtarUtils.Music
                 }
                 else
                     changed |= existing_frames.Count > 0;
+            }
+            if (ape != null)
+            {
+                changed |= ape.Lyrics != simple;
+                ape.Lyrics = simple;
             }
             if (ogg != null)
             {
