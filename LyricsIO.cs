@@ -26,28 +26,37 @@ namespace TryashtarUtils.Music
 
             if (id3v2 != null)
             {
-                changed |= id3v2.Lyrics != simple;
-                id3v2.Lyrics = simple;
-                var existing_frames = id3v2.GetFrames<SynchronisedLyricsFrame>().ToList();
-                foreach (var frame in existing_frames)
+                var synced_frames = id3v2.GetFrames<SynchronisedLyricsFrame>().ToList();
+                var unsynced_frames = id3v2.GetFrames<UnsynchronisedLyricsFrame>().ToList();
+                foreach (var frame in synced_frames)
                 {
                     id3v2.RemoveFrame(frame);
                 }
-                changed |= existing_frames.Count > 1;
+                foreach (var frame in unsynced_frames)
+                {
+                    id3v2.RemoveFrame(frame);
+                }
+                changed |= synced_frames.Count > 1 || unsynced_frames.Count > 1;
                 if (lyrics != null)
                 {
                     string? language = Language.Get(id3v2) ?? "XXX";
-                    var new_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
+                    var synced_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
                     {
                         Text = lyrics.ToSynchedText(),
                         Format = TimestampFormat.AbsoluteMilliseconds
                     };
-                    id3v2.AddFrame(new_frame);
-                    // short circuit
-                    changed = changed || existing_frames.Count == 0 || !IdenticalFrames(existing_frames[0], new_frame);
+                    var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
+                    {
+                        Text = lyrics.ToSimple()
+                    };
+                    id3v2.AddFrame(synced_frame);
+                    id3v2.AddFrame(unsynced_frame);
+                    // use || instead of |= to short-circuit
+                    changed = changed || synced_frames.Count == 0 || unsynced_frames.Count == 0
+                        || !IdenticalFrames(synced_frames[0], synced_frame) || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
                 }
                 else
-                    changed |= existing_frames.Count > 0;
+                    changed |= synced_frames.Count > 0 || unsynced_frames.Count > 0;
             }
             if (ape != null)
             {
@@ -79,6 +88,11 @@ namespace TryashtarUtils.Music
         }
 
         private static bool IdenticalFrames(SynchronisedLyricsFrame frame1, SynchronisedLyricsFrame frame2)
+        {
+            return frame1.Render(4) == frame2.Render(4);
+        }
+
+        private static bool IdenticalFrames(UnsynchronisedLyricsFrame frame1, UnsynchronisedLyricsFrame frame2)
         {
             return frame1.Render(4) == frame2.Render(4);
         }
