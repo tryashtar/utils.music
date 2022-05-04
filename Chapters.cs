@@ -32,6 +32,21 @@ namespace TryashtarUtils.Music
             }
         }
 
+        private static readonly IComparer<Chapter> TimeComparer = new LambdaComparer<Chapter, TimeSpan>(x => x.Time);
+
+        public Chapter ChapterAtTime(TimeSpan time)
+        {
+            var fake = new Chapter(0, "", time);
+            int search = Entries.BinarySearch(fake, TimeComparer);
+            if (search < 0)
+            {
+                search = ~search;
+                search--;
+            }
+            search = Math.Clamp(search, 0, Entries.Count - 1);
+            return Entries[search];
+        }
+
         public SynchedText[] ToSynchedText()
         {
             return Entries.Select(x => new SynchedText((long)x.Time.TotalMilliseconds, x.Title)).ToArray();
@@ -43,18 +58,8 @@ namespace TryashtarUtils.Music
         }
     }
 
-    public struct Chapter
+    public record Chapter(uint Number, string Title, TimeSpan Time)
     {
-        public readonly uint Number;
-        public readonly string Title;
-        public readonly TimeSpan Time;
-        public Chapter(uint number, string title, TimeSpan time)
-        {
-            Number = number;
-            Title = title;
-            Time = time;
-        }
-
         public string ToChpEntry()
         {
             string time_str = StringUtils.TimeSpan(Time);

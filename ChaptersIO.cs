@@ -135,9 +135,9 @@ namespace TryashtarUtils.Music
             foreach (var frame in tag.GetFrames<ChapterFrame>())
             {
                 var chapter = ChapterFromFrame(frame, num);
-                if (chapter.HasValue)
+                if (chapter != null)
                 {
-                    chapters.Add(chapter.Value);
+                    chapters.Add(chapter);
                     num++;
                 }
             }
