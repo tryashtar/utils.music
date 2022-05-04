@@ -34,7 +34,7 @@ namespace TryashtarUtils.Music
 
         private static readonly IComparer<Chapter> TimeComparer = new LambdaComparer<Chapter, TimeSpan>(x => x.Time);
 
-        public Chapter ChapterAtTime(TimeSpan time)
+        public Chapter? ChapterAtTime(TimeSpan time)
         {
             var fake = new Chapter(0, "", time);
             int search = Entries.BinarySearch(fake, TimeComparer);
@@ -43,7 +43,9 @@ namespace TryashtarUtils.Music
                 search = ~search;
                 search--;
             }
-            search = Math.Clamp(search, 0, Entries.Count - 1);
+            if (search < 0)
+                return null;
+            search = Math.Min(search, Entries.Count - 1);
             return Entries[search];
         }
 
