@@ -42,6 +42,23 @@ namespace TryashtarUtils.Music
             }
         }
 
+        private static readonly IComparer<LyricsEntry> TimeComparer = new LambdaComparer<LyricsEntry, TimeSpan>(x => x.Time);
+
+        public LyricsEntry? LyricAtTime(TimeSpan time)
+        {
+            var fake = new LyricsEntry("", time);
+            int search = Entries.BinarySearch(fake, TimeComparer);
+            if (search < 0)
+            {
+                search = ~search;
+                search--;
+            }
+            if (search < 0)
+                return null;
+            search = Math.Min(search, Entries.Count - 1);
+            return Entries[search];
+        }
+
         public SynchedText[] ToSynchedText()
         {
             return Entries.Select(x => new SynchedText((long)x.Time.TotalMilliseconds, x.Text)).ToArray();
