@@ -75,16 +75,8 @@ namespace TryashtarUtils.Music
         }
     }
 
-    public struct LyricsEntry
+    public record LyricsEntry(string Text, TimeSpan Time)
     {
-        public readonly string Text;
-        public readonly TimeSpan Time;
-        public LyricsEntry(string text, TimeSpan time)
-        {
-            Text = text;
-            Time = time;
-        }
-
         public string ToLrcEntry()
         {
             string time_str = StringUtils.TimeSpan(Time);

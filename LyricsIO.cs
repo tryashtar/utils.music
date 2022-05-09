@@ -175,7 +175,7 @@ namespace TryashtarUtils.Music
             {
                 var entry = FromLrcLine(line);
                 if (entry != null)
-                    list.Add(entry.Value);
+                    list.Add(entry);
             }
             if (list.Count == 0)
                 return null;
