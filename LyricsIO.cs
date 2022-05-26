@@ -1,3 +1,4 @@
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace TryashtarUtils.Music
     {
         public const string OGG_LYRICS = "LYRICS";
         public const string OGG_UNSYNCED_LYRICS = "UNSYNCED LYRICS";
+        public const string RICH_LYRICS = "RICH LYRICS";
 
         public static JObject ToJson(Lyrics lyrics)
         {
@@ -100,17 +102,23 @@ namespace TryashtarUtils.Music
                 tag.RemoveField(OGG_LYRICS);
                 changed |= tag.GetFirstField(OGG_UNSYNCED_LYRICS) != null;
                 tag.RemoveField(OGG_UNSYNCED_LYRICS);
+                changed |= tag.GetFirstField(RICH_LYRICS) != null;
+                tag.RemoveField(RICH_LYRICS);
             }
             else
             {
                 string simple = lyrics.ToSimple();
-                var lrc = String.Join("\n", lyrics.ToLrc());
+                string lrc = String.Join("\n", lyrics.ToLrc());
+                string rich = ToJson(lyrics).ToString(Formatting.None);
                 var existing = tag.GetField(OGG_LYRICS);
                 changed |= existing.Length != 1 || existing[0] != lrc;
                 tag.SetField(OGG_LYRICS, lrc);
                 var existing_unsynced = tag.GetField(OGG_UNSYNCED_LYRICS);
                 changed |= existing_unsynced.Length != 1 || existing_unsynced[0] != simple;
                 tag.SetField(OGG_UNSYNCED_LYRICS, simple);
+                var existing_rich = tag.GetField(RICH_LYRICS);
+                changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
+                tag.SetField(RICH_LYRICS, rich);
             }
             return changed;
         }
@@ -126,8 +134,13 @@ namespace TryashtarUtils.Music
         public static bool ToId3v2(TagLib.Id3v2.Tag tag, Lyrics? lyrics)
         {
             bool changed = false;
+            var rich_frames = tag.GetFrames<UserTextInformationFrame>().Where(x => x.Description == RICH_LYRICS).ToList();
             var synced_frames = tag.GetFrames<SynchronisedLyricsFrame>().ToList();
             var unsynced_frames = tag.GetFrames<UnsynchronisedLyricsFrame>().ToList();
+            foreach (var frame in rich_frames)
+            {
+                tag.RemoveFrame(frame);
+            }
             foreach (var frame in synced_frames)
             {
                 tag.RemoveFrame(frame);
@@ -136,7 +149,7 @@ namespace TryashtarUtils.Music
             {
                 tag.RemoveFrame(frame);
             }
-            changed |= synced_frames.Count > 1 || unsynced_frames.Count > 1;
+            changed |= synced_frames.Count > 1 || unsynced_frames.Count > 1 || rich_frames.Count > 1;
             if (lyrics != null)
             {
                 string? language = Language.Get(tag) ?? "XXX";
@@ -149,11 +162,18 @@ namespace TryashtarUtils.Music
                 {
                     Text = lyrics.ToSimple()
                 };
+                var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
+                {
+                    Text = new[] { ToJson(lyrics).ToString(Formatting.None) }
+                };
                 tag.AddFrame(synced_frame);
                 tag.AddFrame(unsynced_frame);
+                tag.AddFrame(rich_frame);
                 // use || instead of |= to short-circuit
-                changed = changed || synced_frames.Count == 0 || unsynced_frames.Count == 0
-                    || !IdenticalFrames(synced_frames[0], synced_frame) || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
+                changed = changed || synced_frames.Count == 0 || unsynced_frames.Count == 0 || rich_frames.Count == 0
+                    || !IdenticalFrames(synced_frames[0], synced_frame)
+                    || !IdenticalFrames(unsynced_frames[0], unsynced_frame)
+                    || !IdenticalFrames(rich_frames[0], rich_frame);
             }
             else
                 changed |= synced_frames.Count > 0 || unsynced_frames.Count > 0;
@@ -166,6 +186,11 @@ namespace TryashtarUtils.Music
         }
 
         private static bool IdenticalFrames(UnsynchronisedLyricsFrame frame1, UnsynchronisedLyricsFrame frame2)
+        {
+            return frame1.Render(4) == frame2.Render(4);
+        }
+
+        private static bool IdenticalFrames(TextInformationFrame frame1, TextInformationFrame frame2)
         {
             return frame1.Render(4) == frame2.Render(4);
         }
@@ -197,6 +222,11 @@ namespace TryashtarUtils.Music
 
         public static Lyrics? FromId3v2(TagLib.Id3v2.Tag tag, TimeSpan duration)
         {
+            foreach (var frame in tag.GetFrames<UserTextInformationFrame>().Where(x => x.Description == RICH_LYRICS))
+            {
+                if (frame.Text.Length > 0)
+                    return FromJson(JObject.Parse(frame.Text[0]));
+            }
             foreach (var frame in tag.GetFrames<SynchronisedLyricsFrame>())
             {
                 return new Lyrics(frame.Text, duration);
@@ -206,6 +236,9 @@ namespace TryashtarUtils.Music
 
         public static Lyrics? FromXiph(TagLib.Ogg.XiphComment tag, TimeSpan duration)
         {
+            var rich = tag.GetFirstField(RICH_LYRICS);
+            if (rich != null)
+                return FromJson(JObject.Parse(rich));
             var text = tag.GetFirstField(OGG_LYRICS);
             if (text != null)
             {
