@@ -1,4 +1,5 @@
-﻿using System;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,75 +16,147 @@ namespace TryashtarUtils.Music
     {
         public const string OGG_LYRICS = "LYRICS";
         public const string OGG_UNSYNCED_LYRICS = "UNSYNCED LYRICS";
+
+        public static JObject ToJson(Lyrics lyrics)
+        {
+            var json = new JObject();
+            var channels = new JArray();
+            json.Add("channels", channels);
+            foreach (var channel in lyrics.Channels)
+            {
+                var jc = new JObject();
+                if (channel.Name != null)
+                    jc.Add("name", channel.Name);
+                var jl = new JArray();
+                jc.Add("lyrics", jl);
+                foreach (var line in channel.Lyrics)
+                {
+                    if (!lyrics.Synchronized)
+                        jl.Add(line.Text);
+                    else
+                    {
+                        var je = new JObject();
+                        jl.Add(je);
+                        je.Add("text", line.Text);
+                        je.Add("start", line.Start);
+                        je.Add("end", line.End);
+                    }
+                }
+            }
+            return json;
+        }
+
+        public static Lyrics FromJson(JObject json)
+        {
+            bool synced = true;
+            var channels = new List<LyricsChannel>();
+            foreach (JObject jc in json["channels"])
+            {
+                var name = jc["name"] ?? null;
+                var channel = new LyricsChannel((string)name);
+                foreach (var item in jc["lyrics"])
+                {
+                    if (item.Type == JTokenType.String)
+                    {
+                        synced = false;
+                        channel.Add(new LyricsEntry((string)item, TimeSpan.Zero, TimeSpan.Zero));
+                    }
+                    else
+                        channel.Add(new LyricsEntry((string)item["name"], (TimeSpan)item["start"], (TimeSpan)item["end"]));
+                }
+            }
+            var lyrics = new Lyrics(synced);
+            foreach (var c in channels)
+            {
+                lyrics.AddChannel(c);
+            }
+            return lyrics;
+        }
+
         public static bool ToFile(TagLib.File file, Lyrics? lyrics)
         {
             bool changed = false;
-            var simple = lyrics?.ToSimple();
 
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
             var ogg = (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph);
             var ape = (TagLib.Ape.Tag)file.GetTag(TagTypes.Ape);
 
             if (id3v2 != null)
-            {
-                var synced_frames = id3v2.GetFrames<SynchronisedLyricsFrame>().ToList();
-                var unsynced_frames = id3v2.GetFrames<UnsynchronisedLyricsFrame>().ToList();
-                foreach (var frame in synced_frames)
-                {
-                    id3v2.RemoveFrame(frame);
-                }
-                foreach (var frame in unsynced_frames)
-                {
-                    id3v2.RemoveFrame(frame);
-                }
-                changed |= synced_frames.Count > 1 || unsynced_frames.Count > 1;
-                if (lyrics != null)
-                {
-                    string? language = Language.Get(id3v2) ?? "XXX";
-                    var synced_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
-                    {
-                        Text = lyrics.ToSynchedText(),
-                        Format = TimestampFormat.AbsoluteMilliseconds
-                    };
-                    var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
-                    {
-                        Text = lyrics.ToSimple()
-                    };
-                    id3v2.AddFrame(synced_frame);
-                    id3v2.AddFrame(unsynced_frame);
-                    // use || instead of |= to short-circuit
-                    changed = changed || synced_frames.Count == 0 || unsynced_frames.Count == 0
-                        || !IdenticalFrames(synced_frames[0], synced_frame) || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
-                }
-                else
-                    changed |= synced_frames.Count > 0 || unsynced_frames.Count > 0;
-            }
+                changed |= ToId3v2(id3v2, lyrics);
             if (ape != null)
-            {
-                changed |= ape.Lyrics != simple;
-                ape.Lyrics = simple;
-            }
+                changed |= ToApe(ape, lyrics);
             if (ogg != null)
-            {
-                if (lyrics == null)
-                {
-                    changed |= ogg.GetFirstField(OGG_LYRICS) != null;
-                    ogg.RemoveField(OGG_LYRICS);
-                    changed |= ogg.GetFirstField(OGG_UNSYNCED_LYRICS) != null;
-                    ogg.RemoveField(OGG_UNSYNCED_LYRICS);
-                }
-                else
-                {
-                    var lrc = String.Join("\n", lyrics.ToLrc());
-                    var existing = ogg.GetField(OGG_LYRICS);
-                    changed |= existing.Length != 1 || existing[0] != lrc;
-                    ogg.SetField(OGG_LYRICS, lrc);
+                changed |= ToXiph(ogg, lyrics);
 
-                    var existing_unsynced = ogg.GetField(OGG_UNSYNCED_LYRICS);
-                    changed |= existing_unsynced.Length != 1 || existing_unsynced[0] != simple;
-                    ogg.SetField(OGG_UNSYNCED_LYRICS, simple);
-                }
+            return changed;
+        }
+
+        public static bool ToXiph(TagLib.Ogg.XiphComment tag, Lyrics? lyrics)
+        {
+            bool changed = false;
+            if (lyrics == null)
+            {
+                changed |= tag.GetFirstField(OGG_LYRICS) != null;
+                tag.RemoveField(OGG_LYRICS);
+                changed |= tag.GetFirstField(OGG_UNSYNCED_LYRICS) != null;
+                tag.RemoveField(OGG_UNSYNCED_LYRICS);
             }
+            else
+            {
+                string simple = lyrics.ToSimple();
+                var lrc = String.Join("\n", lyrics.ToLrc());
+                var existing = tag.GetField(OGG_LYRICS);
+                changed |= existing.Length != 1 || existing[0] != lrc;
+                tag.SetField(OGG_LYRICS, lrc);
+                var existing_unsynced = tag.GetField(OGG_UNSYNCED_LYRICS);
+                changed |= existing_unsynced.Length != 1 || existing_unsynced[0] != simple;
+                tag.SetField(OGG_UNSYNCED_LYRICS, simple);
+            }
+            return changed;
+        }
+
+        public static bool ToApe(TagLib.Ape.Tag tag, Lyrics? lyrics)
+        {
+            string? simple = lyrics?.ToSimple();
+            bool changed = tag.Lyrics != simple;
+            tag.Lyrics = simple;
+            return changed;
+        }
+
+        public static bool ToId3v2(TagLib.Id3v2.Tag tag, Lyrics? lyrics)
+        {
+            bool changed = false;
+            var synced_frames = tag.GetFrames<SynchronisedLyricsFrame>().ToList();
+            var unsynced_frames = tag.GetFrames<UnsynchronisedLyricsFrame>().ToList();
+            foreach (var frame in synced_frames)
+            {
+                tag.RemoveFrame(frame);
+            }
+            foreach (var frame in unsynced_frames)
+            {
+                tag.RemoveFrame(frame);
+            }
+            changed |= synced_frames.Count > 1 || unsynced_frames.Count > 1;
+            if (lyrics != null)
+            {
+                string? language = Language.Get(tag) ?? "XXX";
+                var synced_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
+                {
+                    Text = lyrics.ToSynchedText(),
+                    Format = TimestampFormat.AbsoluteMilliseconds
+                };
+                var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
+                {
+                    Text = lyrics.ToSimple()
+                };
+                tag.AddFrame(synced_frame);
+                tag.AddFrame(unsynced_frame);
+                // use || instead of |= to short-circuit
+                changed = changed || synced_frames.Count == 0 || unsynced_frames.Count == 0
+                    || !IdenticalFrames(synced_frames[0], synced_frame) || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
+            }
+            else
+                changed |= synced_frames.Count > 0 || unsynced_frames.Count > 0;
             return changed;
         }
 
@@ -102,18 +175,18 @@ namespace TryashtarUtils.Music
             return SharedIO.FromMany(new[] {
                 SharedIO.MethodAttempt(() =>
                     (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2),
-                    x => FromId3v2(x)
+                    x => FromId3v2(x, file.Properties.Duration)
                 ),
                 SharedIO.MethodAttempt(() =>
                     (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph),
-                    x => FromXiph(x)
+                    x => FromXiph(x, file.Properties.Duration)
                 ),
                 SharedIO.MethodAttempt(() =>
                     {
                         var lrc_file = Path.ChangeExtension(file.Name, ".lrc");
-                        return File.Exists(lrc_file) ? File.ReadAllLines(lrc_file) : null;
+                        return File.Exists(lrc_file) ? File.ReadLines(lrc_file) : null;
                     },
-                    x => FromLrc(x)
+                    x => FromLrc(x, file.Properties.Duration)
                 ),
                 SharedIO.MethodAttempt(() =>
                     String.IsNullOrEmpty(file.Tag.Lyrics) ? null : file.Tag.Lyrics,
@@ -122,64 +195,62 @@ namespace TryashtarUtils.Music
             });
         }
 
-        public static Lyrics? FromId3v2(TagLib.Id3v2.Tag tag)
+        public static Lyrics? FromId3v2(TagLib.Id3v2.Tag tag, TimeSpan duration)
         {
             foreach (var frame in tag.GetFrames<SynchronisedLyricsFrame>())
             {
-                return new Lyrics(frame.Text);
+                return new Lyrics(frame.Text, duration);
             }
             return null;
         }
 
-        public static Lyrics? FromXiph(TagLib.Ogg.XiphComment tag)
+        public static Lyrics? FromXiph(TagLib.Ogg.XiphComment tag, TimeSpan duration)
         {
             var text = tag.GetFirstField(OGG_LYRICS);
             if (text != null)
             {
                 var lyrics = StringUtils.SplitLines(text).ToArray();
-                if (TryFromLrc(lyrics, out var result))
+                if (TryFromLrc(lyrics, duration, out var result))
                     return result;
                 else
-                    return new Lyrics(String.Join("\n", lyrics));
+                    return new Lyrics(String.Join('\n', lyrics));
             }
             var unsynced = tag.GetFirstField(OGG_UNSYNCED_LYRICS);
             if (unsynced != null)
-                return new Lyrics(String.Join("\n", unsynced));
+                return new Lyrics(String.Join('\n', unsynced));
             return null;
         }
 
-        private static bool TryFromLrc(string[] lines, out Lyrics? result)
-        {
-            result = null;
-            if (lines.Length > 0 && FromLrcLine(lines[0]) == null)
-                return false;
-            result = FromLrc(lines);
-            return true;
-        }
-
-        private static LyricsEntry? FromLrcLine(string line)
+        private static SynchedText? ParseSynchedText(string line)
         {
             var match = SharedIO.LrcRegex.Match(line);
             if (match.Success)
             {
                 if (TimeSpan.TryParseExact(match.Groups["time"].Value, SharedIO.TimespanFormats, null, out var time))
-                    return new LyricsEntry(match.Groups["line"].Value, time);
+                    return new SynchedText((long)time.TotalMilliseconds, match.Groups["text"].Value);
             }
             return null;
         }
 
-        public static Lyrics? FromLrc(string[] lines)
+        private static bool TryFromLrc(string[] lines, TimeSpan duration, out Lyrics? result)
         {
-            var list = new List<LyricsEntry>();
+            result = null;
+            if (lines.Length > 0 && ParseSynchedText(lines[0]) == null)
+                return false;
+            result = FromLrc(lines, duration);
+            return true;
+        }
+
+        public static Lyrics FromLrc(IEnumerable<string> lines, TimeSpan duration)
+        {
+            var results = new List<SynchedText>();
             foreach (var line in lines)
             {
-                var entry = FromLrcLine(line);
-                if (entry != null)
-                    list.Add(entry);
+                var text = ParseSynchedText(line);
+                if (text != null)
+                    results.Add(text.Value);
             }
-            if (list.Count == 0)
-                return null;
-            return new Lyrics(list);
+            return new Lyrics(results, duration);
         }
     }
 }
