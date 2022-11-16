@@ -28,6 +28,7 @@ namespace TryashtarUtils.Music
             foreach (var channel in lyrics.Channels)
             {
                 var jc = new JObject();
+                channels.Add(jc);
                 if (channel.Name != null)
                     jc.Add("name", channel.Name);
                 var jl = new JArray();
@@ -145,7 +146,6 @@ namespace TryashtarUtils.Music
             return false;
         }
 
-        // "changed" logic is not totally correct here
         public static bool ToId3v2(TagLib.Id3v2.Tag tag, Lyrics? lyrics, LyricTypes types)
         {
             var rich_frames = tag.GetFrames<UserTextInformationFrame>().Where(x => x.Description == RICH_LYRICS).ToList();
@@ -163,41 +163,38 @@ namespace TryashtarUtils.Music
             {
                 tag.RemoveFrame(frame);
             }
+            if (lyrics == null)
+                return synced_frames.Count > 0 || unsynced_frames.Count > 0 || rich_frames.Count > 0;
             bool changed = synced_frames.Count > 1 || unsynced_frames.Count > 1 || rich_frames.Count > 1;
-            if (lyrics != null)
+            string? language = Language.Get(tag) ?? "XXX";
+            if (types.HasFlag(LyricTypes.Synced))
             {
-                string? language = Language.Get(tag) ?? "XXX";
-                if (types.HasFlag(LyricTypes.Synced))
+                var synced_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
                 {
-                    var synced_frame = new SynchronisedLyricsFrame("", language, SynchedTextType.Lyrics, StringType.Latin1)
-                    {
-                        Text = lyrics.ToSynchedText(),
-                        Format = TimestampFormat.AbsoluteMilliseconds
-                    };
-                    tag.AddFrame(synced_frame);
-                    changed = changed || synced_frames.Count == 0 || !IdenticalFrames(synced_frames[0], synced_frame);
-                }
-                if (types.HasFlag(LyricTypes.Simple))
-                {
-                    var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
-                    {
-                        Text = lyrics.ToSimple()
-                    };
-                    tag.AddFrame(unsynced_frame);
-                    changed = changed || unsynced_frames.Count == 0 || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
-                }
-                if (types.HasFlag(LyricTypes.Rich))
-                {
-                    var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
-                    {
-                        Text = new[] { ToJson(lyrics).ToString(Formatting.None) }
-                    };
-                    tag.AddFrame(rich_frame);
-                    changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
-                }
+                    Text = lyrics.ToSynchedText(),
+                    Format = TimestampFormat.AbsoluteMilliseconds
+                };
+                tag.AddFrame(synced_frame);
+                changed = changed || synced_frames.Count == 0 || !IdenticalFrames(synced_frames[0], synced_frame);
             }
-            else
-                changed |= synced_frames.Count > 0 || unsynced_frames.Count > 0 || rich_frames.Count > 0;
+            if (types.HasFlag(LyricTypes.Simple))
+            {
+                var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
+                {
+                    Text = lyrics.ToSimple()
+                };
+                tag.AddFrame(unsynced_frame);
+                changed = changed || unsynced_frames.Count == 0 || !IdenticalFrames(unsynced_frames[0], unsynced_frame);
+            }
+            if (types.HasFlag(LyricTypes.Rich))
+            {
+                var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
+                {
+                    Text = new[] { ToJson(lyrics).ToString(Formatting.None) }
+                };
+                tag.AddFrame(rich_frame);
+                changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
+            }
             return changed;
         }
 

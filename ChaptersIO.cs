@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,6 +21,33 @@ namespace TryashtarUtils.Music
             return "CHAPTER" + num.ToString("000");
         }
 
+        public static JObject ToJson(ChapterCollection chapters)
+        {
+            var json = new JObject();
+            var entries = new JArray();
+            json.Add("chapters", entries);
+            foreach (var chap in chapters.Chapters)
+            {
+                var jc = new JObject();
+                entries.Add(jc);
+                jc.Add("title", chap.Title);
+                jc.Add("start", chap.Start);
+                jc.Add("end", chap.End);
+            }
+            return json;
+        }
+
+        public static ChapterCollection FromJson(JObject json)
+        {
+            var entries = new List<Chapter>();
+            foreach (JObject jc in json["chapters"])
+            {
+                entries.Add(new Chapter((string)jc["title"], (TimeSpan)jc["start"], (TimeSpan)jc["end"]));
+            }
+            var collection = new ChapterCollection(entries);
+            return collection;
+        }
+
         private class ChapterFrameComparer : IEqualityComparer<ChapterFrame>
         {
             public static readonly ChapterFrameComparer Instance = new();
@@ -39,7 +67,7 @@ namespace TryashtarUtils.Music
             }
         }
 
-        public static bool ToFile(TagLib.File file, ChapterCollection chapters)
+        public static bool ToFile(TagLib.File file, ChapterCollection? chapters)
         {
             bool changed = false;
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
@@ -58,7 +86,7 @@ namespace TryashtarUtils.Music
             return SharedIO.FromMany(new[] {
                 SharedIO.MethodAttempt(() =>
                     (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2),
-                    x => FromId3v2(x, file.Properties.Duration)
+                    x => FromId3v2(x)
                 ),
                 SharedIO.MethodAttempt(() =>
                     (TagLib.Ogg.XiphComment)file.GetTag(TagTypes.Xiph),
@@ -74,7 +102,7 @@ namespace TryashtarUtils.Music
             });
         }
 
-        public static ChapterCollection FromId3v2(TagLib.Id3v2.Tag tag, TimeSpan duration)
+        public static ChapterCollection FromId3v2(TagLib.Id3v2.Tag tag)
         {
             var chapters = new List<Chapter>();
             foreach (var frame in tag.GetFrames<ChapterFrame>())
@@ -86,13 +114,15 @@ namespace TryashtarUtils.Music
             return new ChapterCollection(chapters);
         }
 
-        public static bool ToId3v2(TagLib.Id3v2.Tag tag, ChapterCollection chapters)
+        public static bool ToId3v2(TagLib.Id3v2.Tag tag, ChapterCollection? chapters)
         {
             var existing_frames = tag.GetFrames<ChapterFrame>().ToList();
             foreach (var frame in existing_frames)
             {
                 tag.RemoveFrame(frame);
             }
+            if (chapters == null)
+                return existing_frames.Count > 0;
             var new_frames = new List<ChapterFrame>();
             for (int i = 0; i < chapters.Chapters.Count; i++)
             {
@@ -138,7 +168,7 @@ namespace TryashtarUtils.Music
             return new ChapterCollection(chapters);
         }
 
-        public static bool ToXiph(TagLib.Ogg.XiphComment tag, ChapterCollection chapters)
+        public static bool ToXiph(TagLib.Ogg.XiphComment tag, ChapterCollection? chapters)
         {
             bool changed = false;
             for (int i = 0; i < MAX_OGG_CHAPTERS; i++)
@@ -146,7 +176,7 @@ namespace TryashtarUtils.Music
                 string chapter_num = ChapterTimeKey((uint)i);
                 string? desired_time = null;
                 string? desired_name = null;
-                if (i < chapters.Chapters.Count)
+                if (chapters != null && i < chapters.Chapters.Count)
                 {
                     desired_time = StringUtils.TimeSpan(chapters.Chapters[i].Start);
                     desired_name = chapters.Chapters[i].Title;
