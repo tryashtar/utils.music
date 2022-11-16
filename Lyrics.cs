@@ -25,19 +25,22 @@ namespace TryashtarUtils.Music
             Synchronized = synchronized;
         }
 
-        public Lyrics(IEnumerable<SynchedText> text, TimeSpan duration)
+        public Lyrics(IEnumerable<SynchedText> text, TimeSpan? duration = null)
         {
             Synchronized = true;
             var channel = new LyricsChannel();
             ChannelList.Add(channel);
-            Action<TimeSpan> add_next_entry = x => { };
-            foreach (var item in text)
+            var list = text.ToArray();
+            for (int i = 0; i < list.Length; i++)
             {
-                var time = TimeSpan.FromMilliseconds(item.Time);
-                add_next_entry(time);
-                add_next_entry = x => { channel.Add(new LyricsEntry(item.Text, time, x)); };
+                var start = TimeSpan.FromMilliseconds(list[i].Time);
+                TimeSpan end = start;
+                if (i < list.Length - 1)
+                    end = TimeSpan.FromMilliseconds(list[i + 1].Time);
+                else if (duration != null)
+                    end = duration.Value;
+                channel.Add(new LyricsEntry(list[i].Text, start, end));
             }
-            add_next_entry(duration);
         }
 
         public Lyrics(IEnumerable<LyricsEntry> entries)

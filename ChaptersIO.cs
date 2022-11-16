@@ -161,7 +161,7 @@ namespace TryashtarUtils.Music
             return changed;
         }
 
-        public static ChapterCollection FromChp(IEnumerable<string> lines, TimeSpan duration)
+        public static ChapterCollection FromChp(IEnumerable<string> lines, TimeSpan? duration = null)
         {
             var chapters = new List<Chapter>();
             Action<TimeSpan> add_previous_chapter = x => { };
@@ -174,11 +174,14 @@ namespace TryashtarUtils.Music
                     {
                         string text = match.Groups["line"].Value;
                         add_previous_chapter(time);
+                        if (duration == null)
+                            duration = time;
                         add_previous_chapter = x => { chapters.Add(new Chapter(text, time, x)); };
                     }
                 }
             }
-            add_previous_chapter(duration);
+            if (duration != null)
+                add_previous_chapter(duration.Value);
             return new ChapterCollection(chapters);
         }
     }

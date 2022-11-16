@@ -295,7 +295,7 @@ namespace TryashtarUtils.Music
             return true;
         }
 
-        public static Lyrics FromLrc(IEnumerable<string> lines, TimeSpan duration)
+        public static Lyrics FromLrc(IEnumerable<string> lines, TimeSpan? duration = null)
         {
             var results = new List<SynchedText>();
             foreach (var line in lines)

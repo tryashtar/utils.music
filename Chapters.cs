@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using static System.Net.Mime.MediaTypeNames;
+using TryashtarUtils.Utility;
 
 namespace TryashtarUtils.Music
 {
@@ -58,6 +60,11 @@ namespace TryashtarUtils.Music
         {
             return Entries.Select(x => x.Start).Concat(Entries.Select(x => x.End)).Distinct().OrderBy(x => x);
         }
+
+        public string[] ToChp()
+        {
+            return Chapters.Select(x => x.ToChpEntry()).ToArray();
+        }
     }
 
     public class Chapter : INotifyPropertyChanged
@@ -87,6 +94,12 @@ namespace TryashtarUtils.Music
             this.title = title;
             this.start = start;
             this.end = end;
+        }
+
+        public string ToChpEntry()
+        {
+            string time_str = StringUtils.TimeSpan(Start);
+            return $"[{time_str}]{Title}";
         }
 
         public override string ToString()
