@@ -49,7 +49,7 @@ namespace TryashtarUtils.Music
             // use "Chapters" not "Entries" so results appear in order
             foreach (var chapter in Chapters)
             {
-                if (chapter.Start >= time && chapter.End <= time)
+                if (time >= chapter.Start && time <= chapter.End)
                     yield return chapter;
             }
         }
@@ -82,6 +82,11 @@ namespace TryashtarUtils.Music
             this.title = title;
             this.start = start;
             this.end = end;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Start}]-[{End}]: {Title}";
         }
     }
 

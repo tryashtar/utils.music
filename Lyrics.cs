@@ -93,7 +93,7 @@ namespace TryashtarUtils.Music
             {
                 foreach (var line in channel.Lyrics)
                 {
-                    if (line.Start >= time && line.Start <= time)
+                    if (time >= line.Start && time <= line.End)
                         yield return line;
                 }
             }
@@ -192,6 +192,11 @@ namespace TryashtarUtils.Music
         {
             string time_str = StringUtils.TimeSpan(Start);
             return $"[{time_str}]{Text}";
+        }
+
+        public override string ToString()
+        {
+            return $"[{Start}]-[{End}]: {Text}";
         }
     }
 

@@ -281,7 +281,7 @@ namespace TryashtarUtils.Music
             if (match.Success)
             {
                 if (TimeSpan.TryParseExact(match.Groups["time"].Value, SharedIO.TimespanFormats, null, out var time))
-                    return new SynchedText((long)time.TotalMilliseconds, match.Groups["text"].Value);
+                    return new SynchedText((long)time.TotalMilliseconds, match.Groups["line"].Value);
             }
             return null;
         }
