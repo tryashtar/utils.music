@@ -53,6 +53,11 @@ namespace TryashtarUtils.Music
                     yield return chapter;
             }
         }
+
+        public IEnumerable<TimeSpan> UniqueSegments()
+        {
+            return Entries.Select(x => x.Start).Concat(Entries.Select(x => x.End)).Distinct().OrderBy(x => x);
+        }
     }
 
     public class Chapter : INotifyPropertyChanged
