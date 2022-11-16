@@ -58,6 +58,7 @@ namespace TryashtarUtils.Music
             {
                 var name = jc["name"] ?? null;
                 var channel = new LyricsChannel((string)name);
+                channels.Add(channel);
                 foreach (var item in jc["lyrics"])
                 {
                     if (item.Type == JTokenType.String)
@@ -66,7 +67,7 @@ namespace TryashtarUtils.Music
                         channel.Add(new LyricsEntry((string)item, TimeSpan.Zero, TimeSpan.Zero));
                     }
                     else
-                        channel.Add(new LyricsEntry((string)item["name"], (TimeSpan)item["start"], (TimeSpan)item["end"]));
+                        channel.Add(new LyricsEntry((string)item["text"], (TimeSpan)item["start"], (TimeSpan)item["end"]));
                 }
             }
             var lyrics = new Lyrics(synced);
