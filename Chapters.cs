@@ -23,6 +23,8 @@ namespace TryashtarUtils.Music
             Entries.AddRange(entries);
         }
 
+        public ChapterCollection() { }
+
         public void Add(Chapter chapter)
         {
             Entries.Add(chapter);
