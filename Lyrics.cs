@@ -126,8 +126,8 @@ namespace TryashtarUtils.Music
             get { return name; }
             set { name = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name))); }
         }
-        public TimeSpan? Start => Entries.OrderBy(x => x.Start).FirstOrDefault()?.Start;
-        public TimeSpan? End => Entries.OrderBy(x => x.End).FirstOrDefault()?.End;
+        public TimeSpan? Start => Entries.Count == 0 ? null : Entries.Min(x => x.Start);
+        public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly List<LyricsEntry> Entries = new();
