@@ -309,8 +309,8 @@ namespace TryashtarUtils.Music
     [Flags]
     public enum LyricTypes
     {
-        Simple,
-        Synced,
-        Rich
+        Simple = 1,
+        Synced = 2,
+        Rich = 4
     }
 }
