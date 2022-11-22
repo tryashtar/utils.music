@@ -104,10 +104,10 @@ namespace TryashtarUtils.Music
                 changed |= tag.GetFirstField(OGG_LYRICS) != null;
                 changed |= tag.GetFirstField(OGG_UNSYNCED_LYRICS) != null;
                 changed |= tag.GetFirstField(RICH_LYRICS) != null;
+                tag.RemoveField(OGG_LYRICS);
+                tag.RemoveField(OGG_UNSYNCED_LYRICS);
+                tag.RemoveField(RICH_LYRICS);
             }
-            tag.RemoveField(OGG_LYRICS);
-            tag.RemoveField(OGG_UNSYNCED_LYRICS);
-            tag.RemoveField(RICH_LYRICS);
             if (lyrics != null)
             {
                 if (types.HasFlag(LyricTypes.Synced))
