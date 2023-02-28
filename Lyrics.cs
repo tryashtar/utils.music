@@ -15,10 +15,14 @@ namespace TryashtarUtils.Music
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool Synchronized { get; }
         private readonly List<LyricsChannel> ChannelList = new();
-        public ReadOnlyCollection<LyricsChannel> Channels => new(ChannelList.OrderBy(x => x, ChannelComparer.Instance).ToList());
+
+        public ReadOnlyCollection<LyricsChannel> Channels =>
+            new(ChannelList.OrderBy(x => x, ChannelComparer.Instance).ToList());
+
         // use "ChannelList" instead of "Channels" since we are sorting lyrics anyway, don't need sorted channels
         // this way, lyrics will show up in time order across channels, instead of all of one channel, then all of another
-        public IEnumerable<LyricsEntry> AllLyrics => ChannelList.SelectMany(x => x.Lyrics).OrderBy(x => x, LyricsComparer.Instance);
+        public IEnumerable<LyricsEntry> AllLyrics =>
+            ChannelList.SelectMany(x => x.Lyrics).OrderBy(x => x, LyricsComparer.Instance);
 
         public Lyrics(bool synchronized)
         {
@@ -78,6 +82,7 @@ namespace TryashtarUtils.Music
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Channels)));
                 return true;
             }
+
             return false;
         }
 
@@ -116,16 +121,27 @@ namespace TryashtarUtils.Music
         {
             return AllLyrics.Select(x => x.ToLrcEntry()).ToArray();
         }
+
+        public override string ToString()
+        {
+            return String.Join("\n", AllLyrics);
+        }
     }
 
     public class LyricsChannel : INotifyPropertyChanged
     {
         private string? name;
+
         public string? Name
         {
             get { return name; }
-            set { name = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name))); }
+            set
+            {
+                name = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+            }
         }
+
         public TimeSpan? Start => Entries.Count == 0 ? null : Entries.Min(x => x.Start);
         public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
 
@@ -133,6 +149,7 @@ namespace TryashtarUtils.Music
         private readonly List<LyricsEntry> Entries = new();
 
         public ReadOnlyCollection<LyricsEntry> Lyrics => new(Entries.OrderBy(x => x, LyricsComparer.Instance).ToList());
+
         public LyricsChannel(string? name = null)
         {
             this.name = name;
@@ -151,6 +168,7 @@ namespace TryashtarUtils.Music
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Lyrics)));
                 return true;
             }
+
             return false;
         }
 
@@ -166,22 +184,39 @@ namespace TryashtarUtils.Music
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private string text;
+
         public string Text
         {
             get { return text; }
-            set { text = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Text))); }
+            set
+            {
+                text = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Text)));
+            }
         }
+
         private TimeSpan start;
+
         public TimeSpan Start
         {
             get { return start; }
-            set { start = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Start))); }
+            set
+            {
+                start = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Start)));
+            }
         }
+
         private TimeSpan end;
+
         public TimeSpan End
         {
             get { return end; }
-            set { end = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(End))); }
+            set
+            {
+                end = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(End)));
+            }
         }
 
         public LyricsEntry(string text, TimeSpan start, TimeSpan end)

@@ -23,7 +23,9 @@ namespace TryashtarUtils.Music
             Entries.AddRange(entries);
         }
 
-        public ChapterCollection() { }
+        public ChapterCollection()
+        {
+        }
 
         public void Add(Chapter chapter)
         {
@@ -38,6 +40,7 @@ namespace TryashtarUtils.Music
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Chapters)));
                 return true;
             }
+
             return false;
         }
 
@@ -67,28 +70,50 @@ namespace TryashtarUtils.Music
         {
             return Chapters.Select(x => x.ToChpEntry()).ToArray();
         }
+
+        public override string ToString()
+        {
+            return String.Join("\n", Chapters);
+        }
     }
 
     public class Chapter : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private string title;
+
         public string Title
         {
             get { return title; }
-            set { title = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title))); }
+            set
+            {
+                title = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
+            }
         }
+
         private TimeSpan start;
+
         public TimeSpan Start
         {
             get { return start; }
-            set { start = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Start))); }
+            set
+            {
+                start = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Start)));
+            }
         }
+
         private TimeSpan end;
+
         public TimeSpan End
         {
             get { return end; }
-            set { end = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(End))); }
+            set
+            {
+                end = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(End)));
+            }
         }
 
         public Chapter(string title, TimeSpan start, TimeSpan end)
