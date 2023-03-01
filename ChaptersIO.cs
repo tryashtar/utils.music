@@ -207,14 +207,14 @@ namespace TryashtarUtils.Music
 
         public static ChapterCollection? FromXiph(TagLib.Ogg.XiphComment tag, TimeSpan duration, ChapterTypes type)
         {
-            if (type.HasFlag(LyricTypes.Rich))
+            if (type.HasFlag(ChapterTypes.Rich))
             {
                 var rich = tag.GetFirstField(RICH_CHAPTERS);
                 if (rich != null)
                     return FromJson(JObject.Parse(rich));
             }
 
-            if (type.HasFlag(LyricTypes.Synced))
+            if (type.HasFlag(ChapterTypes.Simple))
             {
                 var chapters = new List<Chapter>();
                 Action<TimeSpan> add_previous_chapter = x => { };
@@ -266,10 +266,18 @@ namespace TryashtarUtils.Music
 
             if (types.HasFlag(ChapterTypes.Rich))
             {
-                string rich = ToJson(chapters).ToString(Formatting.None);
                 var existing_rich = tag.GetField(RICH_CHAPTERS);
-                changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
-                tag.SetField(RICH_CHAPTERS, rich);
+                if (chapters == null)
+                {
+                    tag.RemoveField(RICH_CHAPTERS);
+                    changed = changed || existing_rich.Length > 0;
+                }
+                else
+                {
+                    string rich = ToJson(chapters).ToString(Formatting.None);
+                    changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
+                    tag.SetField(RICH_CHAPTERS, rich);
+                }
             }
 
             return changed;
