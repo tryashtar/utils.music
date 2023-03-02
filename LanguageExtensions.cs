@@ -5,7 +5,7 @@ using Tag = TagLib.Tag;
 
 namespace TryashtarUtils.Music
 {
-    public static class Language
+    public static class LanguageExtensions
     {
         public const string ID3_LANGUAGE_TAG = "TLAN";
         public const string XIPH_LANGUAGE_TAG = "LANGUAGE";

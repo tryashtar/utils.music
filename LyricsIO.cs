@@ -165,7 +165,7 @@ namespace TryashtarUtils.Music
         public static bool ToId3v2(TagLib.Id3v2.Tag tag, Lyrics? lyrics, LyricTypes types)
         {
             bool changed = false;
-            string? language = Language.Get(tag) ?? "XXX";
+            string? language = LanguageExtensions.Get(tag) ?? "XXX";
             if (types.HasFlag(LyricTypes.Simple))
             {
                 var unsynced_frames = tag.GetFrames<UnsynchronisedLyricsFrame>().ToList();
