@@ -12,8 +12,7 @@ namespace TryashtarUtils.Music
     public class Lyrics : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        [JsonIgnore]
-        public bool Synchronized { get; }
+        [JsonIgnore] public bool Synchronized { get; }
         private readonly List<LyricsChannel> ChannelList = new();
 
         [JsonPropertyName("channels")]
@@ -22,10 +21,12 @@ namespace TryashtarUtils.Music
 
         // use "ChannelList" instead of "Channels" since we are sorting lyrics anyway, don't need sorted channels
         // this way, lyrics will show up in time order across channels, instead of all of one channel, then all of another
+        [JsonIgnore]
         public IEnumerable<LyricsEntry> AllLyrics =>
             ChannelList.SelectMany(x => x.Lyrics).OrderBy(x => x, LyricsComparer.Instance);
 
-        public Lyrics(bool synchronized)
+        [JsonConstructor]
+        public Lyrics(bool synchronized = true)
         {
             Synchronized = synchronized;
         }
@@ -144,16 +145,15 @@ namespace TryashtarUtils.Music
             }
         }
 
-        [JsonIgnore]
-        public TimeSpan? Start => Entries.Count == 0 ? null : Entries.Min(x => x.Start);
-        [JsonIgnore]
-        public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
+        [JsonIgnore] public TimeSpan? Start => Entries.Count == 0 ? null : Entries.Min(x => x.Start);
+        [JsonIgnore] public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly List<LyricsEntry> Entries = new();
 
         public ReadOnlyCollection<LyricsEntry> Lyrics => new(Entries.OrderBy(x => x, LyricsComparer.Instance).ToList());
 
+        [JsonConstructor]
         public LyricsChannel(string? name = null)
         {
             this.name = name;
@@ -226,6 +226,7 @@ namespace TryashtarUtils.Music
             }
         }
 
+        [JsonConstructor]
         public LyricsEntry(string text, TimeSpan start, TimeSpan end)
         {
             this.text = text;
