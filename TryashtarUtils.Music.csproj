@@ -18,7 +18,4 @@
     <None Remove="**/desktop.ini" />
     <None Remove="Properties\**" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-  </ItemGroup>
 </Project>

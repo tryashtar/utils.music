@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using TagLib;
 using TagLib.Id3v2;
-using Tag = TagLib.Tag;
 
 namespace TryashtarUtils.Music
 {

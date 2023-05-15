@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using static System.Net.Mime.MediaTypeNames;
+using System.Text.Json.Serialization;
 using TryashtarUtils.Utility;
 
 namespace TryashtarUtils.Music
 {
     public class ChapterCollection : INotifyPropertyChanged
     {
+        [JsonPropertyName("chapters")]
         private readonly List<Chapter> Entries = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -82,9 +83,10 @@ namespace TryashtarUtils.Music
         public event PropertyChangedEventHandler? PropertyChanged;
         private string title;
 
+        [JsonPropertyName("title")]
         public string Title
         {
-            get { return title; }
+            get => title;
             set
             {
                 title = value;
@@ -94,9 +96,10 @@ namespace TryashtarUtils.Music
 
         private TimeSpan start;
 
+        [JsonPropertyName("start")]
         public TimeSpan Start
         {
-            get { return start; }
+            get => start;
             set
             {
                 start = value;
@@ -106,9 +109,10 @@ namespace TryashtarUtils.Music
 
         private TimeSpan end;
 
+        [JsonPropertyName("end")]
         public TimeSpan End
         {
-            get { return end; }
+            get => end;
             set
             {
                 end = value;
@@ -141,13 +145,19 @@ namespace TryashtarUtils.Music
 
         public int Compare(Chapter? x, Chapter? y)
         {
+            if (x == null && y == null)
+                return 0;
+            else if (x == null)
+                return -1;
+            else if (y == null)
+                return 1;
             int start = x.Start.CompareTo(y.Start);
             if (start != 0)
                 return start;
             int end = x.End.CompareTo(y.End);
             if (end != 0)
                 return end;
-            return x.Title.CompareTo(y.Title);
+            return String.CompareOrdinal(x.Title, y.Title);
         }
     }
 }

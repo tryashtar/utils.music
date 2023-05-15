@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using TagLib.Id3v2;
 using TryashtarUtils.Utility;
 
@@ -13,9 +12,11 @@ namespace TryashtarUtils.Music
     public class Lyrics : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
+        [JsonIgnore]
         public bool Synchronized { get; }
         private readonly List<LyricsChannel> ChannelList = new();
 
+        [JsonPropertyName("channels")]
         public ReadOnlyCollection<LyricsChannel> Channels =>
             new(ChannelList.OrderBy(x => x, ChannelComparer.Instance).ToList());
 
@@ -132,9 +133,10 @@ namespace TryashtarUtils.Music
     {
         private string? name;
 
+        [JsonPropertyName("name")]
         public string? Name
         {
-            get { return name; }
+            get => name;
             set
             {
                 name = value;
@@ -142,7 +144,9 @@ namespace TryashtarUtils.Music
             }
         }
 
+        [JsonIgnore]
         public TimeSpan? Start => Entries.Count == 0 ? null : Entries.Min(x => x.Start);
+        [JsonIgnore]
         public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -185,9 +189,10 @@ namespace TryashtarUtils.Music
         public event PropertyChangedEventHandler? PropertyChanged;
         private string text;
 
+        [JsonPropertyName("text")]
         public string Text
         {
-            get { return text; }
+            get => text;
             set
             {
                 text = value;
@@ -197,9 +202,10 @@ namespace TryashtarUtils.Music
 
         private TimeSpan start;
 
+        [JsonPropertyName("start")]
         public TimeSpan Start
         {
-            get { return start; }
+            get => start;
             set
             {
                 start = value;
@@ -209,9 +215,10 @@ namespace TryashtarUtils.Music
 
         private TimeSpan end;
 
+        [JsonPropertyName("end")]
         public TimeSpan End
         {
-            get { return end; }
+            get => end;
             set
             {
                 end = value;
@@ -244,13 +251,19 @@ namespace TryashtarUtils.Music
 
         public int Compare(LyricsChannel? x, LyricsChannel? y)
         {
+            if (x == null && y == null)
+                return 0;
+            else if (x == null)
+                return -1;
+            else if (y == null)
+                return 1;
             int start = (x.Start ?? TimeSpan.MaxValue).CompareTo(y.Start ?? TimeSpan.MaxValue);
             if (start != 0)
                 return start;
             int end = (x.End ?? TimeSpan.MaxValue).CompareTo(y.End ?? TimeSpan.MaxValue);
             if (end != 0)
                 return end;
-            return String.Compare(x.Name, y.Name);
+            return String.CompareOrdinal(x.Name, y.Name);
         }
     }
 
@@ -260,13 +273,19 @@ namespace TryashtarUtils.Music
 
         public int Compare(LyricsEntry? x, LyricsEntry? y)
         {
+            if (x == null && y == null)
+                return 0;
+            else if (x == null)
+                return -1;
+            else if (y == null)
+                return 1;
             int start = x.Start.CompareTo(y.Start);
             if (start != 0)
                 return start;
             int end = x.End.CompareTo(y.End);
             if (end != 0)
                 return end;
-            return String.Compare(x.Text, y.Text);
+            return String.CompareOrdinal(x.Text, y.Text);
         }
     }
 }

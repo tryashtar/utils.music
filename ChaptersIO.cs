@@ -1,8 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json;
 using TagLib;
 using TagLib.Id3v2;
 using TryashtarUtils.Utility;
@@ -22,35 +21,6 @@ namespace TryashtarUtils.Music
             return "CHAPTER" + num.ToString("000");
         }
 
-        public static JObject ToJson(ChapterCollection chapters)
-        {
-            var json = new JObject();
-            var entries = new JArray();
-            json.Add("chapters", entries);
-            foreach (var chap in chapters.Chapters)
-            {
-                var jc = new JObject();
-                entries.Add(jc);
-                jc.Add("title", chap.Title);
-                jc.Add("start", chap.Start);
-                jc.Add("end", chap.End);
-            }
-
-            return json;
-        }
-
-        public static ChapterCollection FromJson(JObject json)
-        {
-            var entries = new List<Chapter>();
-            foreach (JObject jc in json["chapters"])
-            {
-                entries.Add(new Chapter((string)jc["title"], (TimeSpan)jc["start"], (TimeSpan)jc["end"]));
-            }
-
-            var collection = new ChapterCollection(entries);
-            return collection;
-        }
-
         private class ChapterFrameComparer : IEqualityComparer<ChapterFrame>
         {
             public static readonly ChapterFrameComparer Instance = new();
@@ -64,7 +34,7 @@ namespace TryashtarUtils.Music
                 if (x == null)
                     return y == null;
                 if (y == null)
-                    return x == null;
+                    return false;
                 return x.Render(4) == y.Render(4);
             }
 
@@ -74,7 +44,7 @@ namespace TryashtarUtils.Music
             }
         }
 
-        public static bool ToFile(TagLib.File file, ChapterCollection? chapters, ChapterTypes types)
+        public static bool ToFile(File file, ChapterCollection? chapters, ChapterTypes types)
         {
             bool changed = false;
             var id3v2 = (TagLib.Id3v2.Tag)file.GetTag(TagTypes.Id3v2);
@@ -88,7 +58,7 @@ namespace TryashtarUtils.Music
             return changed;
         }
 
-        public static ChapterCollection? FromFile(TagLib.File file, ChapterTypes type)
+        public static ChapterCollection? FromFile(File file, ChapterTypes type)
         {
             return SharedIO.FromMany(new[]
             {
@@ -111,7 +81,7 @@ namespace TryashtarUtils.Music
                              .Where(x => x.Description == RICH_CHAPTERS))
                 {
                     if (frame.Text.Length > 0)
-                        return FromJson(JObject.Parse(frame.Text[0]));
+                        return JsonSerializer.Deserialize<ChapterCollection>(frame.Text[0]);
                 }
             }
 
@@ -150,7 +120,7 @@ namespace TryashtarUtils.Music
                 {
                     var rich_frame = new UserTextInformationFrame(RICH_CHAPTERS, StringType.Latin1)
                     {
-                        Text = new[] { ToJson(chapters).ToString(Formatting.None) }
+                        Text = new[] { JsonSerializer.Serialize(chapters) }
                     };
                     tag.AddFrame(rich_frame);
                     changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
@@ -182,8 +152,8 @@ namespace TryashtarUtils.Music
                         new_frames.Add(new_frame);
                     }
 
-                    simple_frames.Sort((x, y) => x.Id.CompareTo(y.Id));
-                    new_frames.Sort((x, y) => x.Id.CompareTo(y.Id));
+                    simple_frames.Sort((x, y) => String.CompareOrdinal(x.Id, y.Id));
+                    new_frames.Sort((x, y) => String.CompareOrdinal(x.Id, y.Id));
                     changed = changed || !new_frames.SequenceEqual(simple_frames, ChapterFrameComparer.Instance);
                 }
             }
@@ -211,13 +181,13 @@ namespace TryashtarUtils.Music
             {
                 var rich = tag.GetFirstField(RICH_CHAPTERS);
                 if (rich != null)
-                    return FromJson(JObject.Parse(rich));
+                    return JsonSerializer.Deserialize<ChapterCollection>(rich);
             }
 
             if (type.HasFlag(ChapterTypes.Simple))
             {
                 var chapters = new List<Chapter>();
-                Action<TimeSpan> add_previous_chapter = x => { };
+                Action<TimeSpan> add_previous_chapter = _ => { };
                 for (uint i = 0; i < MAX_OGG_CHAPTERS; i++)
                 {
                     string chapter_num = ChapterTimeKey(i);
@@ -274,7 +244,7 @@ namespace TryashtarUtils.Music
                 }
                 else
                 {
-                    string rich = ToJson(chapters).ToString(Formatting.None);
+                    string rich = JsonSerializer.Serialize(chapters);
                     changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
                     tag.SetField(RICH_CHAPTERS, rich);
                 }
@@ -286,7 +256,7 @@ namespace TryashtarUtils.Music
         public static ChapterCollection FromChp(IEnumerable<string> lines, TimeSpan? duration = null)
         {
             var chapters = new List<Chapter>();
-            Action<TimeSpan> add_previous_chapter = x => { };
+            Action<TimeSpan> add_previous_chapter = _ => { };
             foreach (var line in lines)
             {
                 var match = SharedIO.LrcRegex.Match(line);
@@ -297,8 +267,7 @@ namespace TryashtarUtils.Music
                     {
                         string text = match.Groups["line"].Value;
                         add_previous_chapter(time);
-                        if (duration == null)
-                            duration = time;
+                        duration ??= time;
                         add_previous_chapter = x => { chapters.Add(new Chapter(text, time, x)); };
                     }
                 }

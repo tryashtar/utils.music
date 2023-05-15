@@ -1,8 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using TagLib;
 using TagLib.Id3v2;
 using TryashtarUtils.Utility;
@@ -15,69 +14,7 @@ namespace TryashtarUtils.Music
         public const string OGG_UNSYNCED_LYRICS = "UNSYNCED LYRICS";
         public const string RICH_LYRICS = "RICH LYRICS";
 
-        public static JObject ToJson(Lyrics lyrics)
-        {
-            var json = new JObject();
-            var channels = new JArray();
-            json.Add("channels", channels);
-            foreach (var channel in lyrics.Channels)
-            {
-                var jc = new JObject();
-                channels.Add(jc);
-                if (channel.Name != null)
-                    jc.Add("name", channel.Name);
-                var jl = new JArray();
-                jc.Add("lyrics", jl);
-                foreach (var line in channel.Lyrics)
-                {
-                    if (!lyrics.Synchronized)
-                        jl.Add(line.Text);
-                    else
-                    {
-                        var je = new JObject();
-                        jl.Add(je);
-                        je.Add("text", line.Text);
-                        je.Add("start", line.Start);
-                        je.Add("end", line.End);
-                    }
-                }
-            }
-
-            return json;
-        }
-
-        public static Lyrics FromJson(JObject json)
-        {
-            bool synced = true;
-            var channels = new List<LyricsChannel>();
-            foreach (JObject jc in json["channels"])
-            {
-                var name = jc["name"] ?? null;
-                var channel = new LyricsChannel((string)name);
-                channels.Add(channel);
-                foreach (var item in jc["lyrics"])
-                {
-                    if (item.Type == JTokenType.String)
-                    {
-                        synced = false;
-                        channel.Add(new LyricsEntry((string)item, TimeSpan.Zero, TimeSpan.Zero));
-                    }
-                    else
-                        channel.Add(new LyricsEntry((string)item["text"], (TimeSpan)item["start"],
-                            (TimeSpan)item["end"]));
-                }
-            }
-
-            var lyrics = new Lyrics(synced);
-            foreach (var c in channels)
-            {
-                lyrics.AddChannel(c);
-            }
-
-            return lyrics;
-        }
-
-        public static bool ToFile(TagLib.File file, Lyrics? lyrics, LyricTypes types)
+        public static bool ToFile(File file, Lyrics? lyrics, LyricTypes types)
         {
             bool changed = false;
 
@@ -139,7 +76,7 @@ namespace TryashtarUtils.Music
                 }
                 else
                 {
-                    string rich = ToJson(lyrics).ToString(Formatting.None);
+                    string rich = JsonSerializer.Serialize(lyrics);
                     var existing_rich = tag.GetField(RICH_LYRICS);
                     changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
                     tag.SetField(RICH_LYRICS, rich);
@@ -165,7 +102,7 @@ namespace TryashtarUtils.Music
         public static bool ToId3v2(TagLib.Id3v2.Tag tag, Lyrics? lyrics, LyricTypes types)
         {
             bool changed = false;
-            string? language = LanguageExtensions.Get(tag) ?? "XXX";
+            string language = LanguageExtensions.Get(tag) ?? "XXX";
             if (types.HasFlag(LyricTypes.Simple))
             {
                 var unsynced_frames = tag.GetFrames<UnsynchronisedLyricsFrame>().ToList();
@@ -226,7 +163,7 @@ namespace TryashtarUtils.Music
                 {
                     var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
                     {
-                        Text = new[] { ToJson(lyrics).ToString(Formatting.None) }
+                        Text = new[] { JsonSerializer.Serialize(lyrics) }
                     };
                     tag.AddFrame(rich_frame);
                     changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
@@ -251,7 +188,7 @@ namespace TryashtarUtils.Music
             return frame1.Render(4) == frame2.Render(4);
         }
 
-        public static Lyrics? FromFile(TagLib.File file, LyricTypes type)
+        public static Lyrics? FromFile(File file, LyricTypes type)
         {
             return SharedIO.FromMany(new[]
             {
@@ -274,7 +211,7 @@ namespace TryashtarUtils.Music
                              .Where(x => x.Description == RICH_LYRICS))
                 {
                     if (frame.Text.Length > 0)
-                        return FromJson(JObject.Parse(frame.Text[0]));
+                        return JsonSerializer.Deserialize<Lyrics>(frame.Text[0]);
                 }
             }
 
@@ -298,7 +235,7 @@ namespace TryashtarUtils.Music
             {
                 var rich = tag.GetFirstField(RICH_LYRICS);
                 if (rich != null)
-                    return FromJson(JObject.Parse(rich));
+                    return JsonSerializer.Deserialize<Lyrics>(rich);
             }
             
             var text = tag.GetFirstField(OGG_LYRICS);

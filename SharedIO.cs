@@ -1,12 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
-using TagLib;
-using TagLib.Id3v2;
-using File = System.IO.File;
-using Tag = TagLib.Tag;
 
 namespace TryashtarUtils.Music
 {
