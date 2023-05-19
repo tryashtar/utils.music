@@ -10,13 +10,16 @@ namespace TryashtarUtils.Music
 {
     public class ChapterCollection : INotifyPropertyChanged
     {
-        private readonly List<Chapter> Entries = new();
+        [JsonInclude]
+        [JsonPropertyName("chapters")]
+        // should be private, except JSON requires public
+        public List<Chapter> Entries { get; private set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         // always presents results in order
         // previously used SortedList, but that doesn't work with mutable chapters
-        [JsonPropertyName("chapters")]
+        [JsonIgnore]
         public ReadOnlyCollection<Chapter> Chapters => new(Entries.OrderBy(x => x, ChapterComparer.Instance).ToList());
 
         public ChapterCollection(IEnumerable<Chapter> entries)
@@ -119,8 +122,7 @@ namespace TryashtarUtils.Music
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(End)));
             }
         }
-
-        [JsonConstructor]
+        
         public Chapter(string title, TimeSpan start, TimeSpan end)
         {
             this.title = title;

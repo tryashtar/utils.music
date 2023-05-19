@@ -13,9 +13,13 @@ namespace TryashtarUtils.Music
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         [JsonIgnore] public bool Synchronized { get; }
-        private readonly List<LyricsChannel> ChannelList = new();
 
+        [JsonInclude]
         [JsonPropertyName("channels")]
+        // should be private, except JSON requires public
+        public List<LyricsChannel> ChannelList { get; private set; } = new();
+
+        [JsonIgnore]
         public ReadOnlyCollection<LyricsChannel> Channels =>
             new(ChannelList.OrderBy(x => x, ChannelComparer.Instance).ToList());
 
@@ -149,8 +153,13 @@ namespace TryashtarUtils.Music
         [JsonIgnore] public TimeSpan? End => Entries.Count == 0 ? null : Entries.Max(x => x.End);
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        private readonly List<LyricsEntry> Entries = new();
 
+        [JsonInclude]
+        [JsonPropertyName("lyrics")]
+        // should be private, except JSON requires public
+        public List<LyricsEntry> Entries { get; private set; } = new();
+
+        [JsonIgnore]
         public ReadOnlyCollection<LyricsEntry> Lyrics => new(Entries.OrderBy(x => x, LyricsComparer.Instance).ToList());
 
         [JsonConstructor]
