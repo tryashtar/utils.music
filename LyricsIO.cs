@@ -270,7 +270,7 @@ namespace TryashtarUtils.Music
             return null;
         }
 
-        private static bool TryFromLrc(string[] lines, TimeSpan duration, out Lyrics? result)
+        public static bool TryFromLrc(string[] lines, TimeSpan duration, out Lyrics? result)
         {
             result = null;
             if (lines.Length > 0 && ParseSynchedText(lines[0]) == null)
