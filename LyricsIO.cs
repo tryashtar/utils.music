@@ -112,7 +112,7 @@ namespace TryashtarUtils.Music
                 }
 
                 if (lyrics == null)
-                    changed = changed || unsynced_frames.Count > 1;
+                    changed = changed || unsynced_frames.Count > 0;
                 else
                 {
                     var unsynced_frame = new UnsynchronisedLyricsFrame("", language, StringType.Latin1)
@@ -120,7 +120,7 @@ namespace TryashtarUtils.Music
                         Text = lyrics.ToSimple()
                     };
                     tag.AddFrame(unsynced_frame);
-                    changed = changed || unsynced_frames.Count == 0 ||
+                    changed = changed || unsynced_frames.Count != 1 ||
                               !IdenticalFrames(unsynced_frames[0], unsynced_frame);
                 }
             }
@@ -134,7 +134,7 @@ namespace TryashtarUtils.Music
                 }
 
                 if (lyrics == null)
-                    changed = changed || synced_frames.Count > 1;
+                    changed = changed || synced_frames.Count > 0;
                 else
                 {
                     var synced_frame =
@@ -144,7 +144,7 @@ namespace TryashtarUtils.Music
                             Format = TimestampFormat.AbsoluteMilliseconds
                         };
                     tag.AddFrame(synced_frame);
-                    changed = changed || synced_frames.Count == 0 || !IdenticalFrames(synced_frames[0], synced_frame);
+                    changed = changed || synced_frames.Count != 1 || !IdenticalFrames(synced_frames[0], synced_frame);
                 }
             }
 
@@ -158,7 +158,7 @@ namespace TryashtarUtils.Music
                 }
 
                 if (lyrics == null)
-                    changed = changed || rich_frames.Count > 1;
+                    changed = changed || rich_frames.Count > 0;
                 else
                 {
                     var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
@@ -166,7 +166,7 @@ namespace TryashtarUtils.Music
                         Text = new[] { JsonSerializer.Serialize(lyrics) }
                     };
                     tag.AddFrame(rich_frame);
-                    changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
+                    changed = changed || rich_frames.Count != 1 || !IdenticalFrames(rich_frames[0], rich_frame);
                 }
             }
 
