@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using TagLib;
 using TagLib.Id3v2;
 using TryashtarUtils.Utility;
@@ -13,6 +15,11 @@ namespace TryashtarUtils.Music
         public const string OGG_LYRICS = "LYRICS";
         public const string OGG_UNSYNCED_LYRICS = "UNSYNCED LYRICS";
         public const string RICH_LYRICS = "RICH LYRICS";
+
+        public static readonly JsonSerializerOptions SerializeOptions = new()
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
 
         public static bool ToFile(File file, Lyrics? lyrics, LyricTypes types)
         {
@@ -76,7 +83,7 @@ namespace TryashtarUtils.Music
                 }
                 else
                 {
-                    string rich = JsonSerializer.Serialize(lyrics);
+                    string rich = JsonSerializer.Serialize(lyrics, SerializeOptions);
                     var existing_rich = tag.GetField(RICH_LYRICS);
                     changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
                     tag.SetField(RICH_LYRICS, rich);
@@ -163,7 +170,7 @@ namespace TryashtarUtils.Music
                 {
                     var rich_frame = new UserTextInformationFrame(RICH_LYRICS, StringType.Latin1)
                     {
-                        Text = new[] { JsonSerializer.Serialize(lyrics) }
+                        Text = new[] { JsonSerializer.Serialize(lyrics, SerializeOptions) }
                     };
                     tag.AddFrame(rich_frame);
                     changed = changed || rich_frames.Count != 1 || !IdenticalFrames(rich_frames[0], rich_frame);

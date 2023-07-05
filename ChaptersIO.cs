@@ -120,7 +120,7 @@ namespace TryashtarUtils.Music
                 {
                     var rich_frame = new UserTextInformationFrame(RICH_CHAPTERS, StringType.Latin1)
                     {
-                        Text = new[] { JsonSerializer.Serialize(chapters) }
+                        Text = new[] { JsonSerializer.Serialize(chapters, LyricsIO.SerializeOptions) }
                     };
                     tag.AddFrame(rich_frame);
                     changed = changed || rich_frames.Count == 0 || !IdenticalFrames(rich_frames[0], rich_frame);
@@ -244,7 +244,7 @@ namespace TryashtarUtils.Music
                 }
                 else
                 {
-                    string rich = JsonSerializer.Serialize(chapters);
+                    string rich = JsonSerializer.Serialize(chapters, LyricsIO.SerializeOptions);
                     changed |= existing_rich.Length != 1 || existing_rich[0] != rich;
                     tag.SetField(RICH_CHAPTERS, rich);
                 }
